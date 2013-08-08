@@ -2,6 +2,7 @@ package hzk.widgets.wscollator;
 
 import hzk.widgets.swing.JDraggablePane;
 import hzk.widgets.swing.JImagePane;
+import hzk.widgets.swing.JTransformUtils;
 import hzk.widgets.util.ImageTransformUtils;
 import hzk.widgets.util.MyIOUtils;
 
@@ -16,6 +17,7 @@ import javax.swing.JScrollPane;
 
 import java.awt.Dimension;
 import java.awt.BorderLayout;
+
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JButton;
@@ -38,8 +40,10 @@ import java.awt.Font;
 import java.awt.Color;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+
 import javax.swing.border.EtchedBorder;
 import javax.swing.JLayeredPane;
+
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyAdapter;
@@ -65,10 +69,12 @@ public class ImageVMergerUI {
 	List<JDraggablePane> masks2 = new ArrayList<JDraggablePane>();
 	List<JTextField> texts1 = new ArrayList<JTextField>();
 	List<JTextField> texts2 = new ArrayList<JTextField>();
+	List<JButton> btnMasks = new ArrayList<JButton>();
 	double ratio = 0.75; // image zoom ratio
 	int n; // image count
-	int max_w = 460, max_h = (int) (604 * 0.75); // each image's visual max
-													// width and height
+	// each image's visual max width and height
+	int max_w = 460, max_h = (int) (604 * 0.75);
+	int def_msk_h = 25; // default height of mask panels height
 	boolean isLoaded;
 	private JLabel label;
 	private JButton btnReload;
@@ -79,6 +85,7 @@ public class ImageVMergerUI {
 
 	String save_conf_path;
 	String save_conf_prefix;
+
 	/**
 	 * Launch the application.
 	 */
@@ -86,7 +93,7 @@ public class ImageVMergerUI {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ImageVMergerUI window = new ImageVMergerUI(null,null,null);
+					ImageVMergerUI window = new ImageVMergerUI(null, null, null);
 					window.frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -105,8 +112,8 @@ public class ImageVMergerUI {
 	 */
 	public ImageVMergerUI(BufferedImage[] imgs, String save_conf_path, String save_conf_prefix) {
 		this.imgs = imgs;
-		this.save_conf_path=save_conf_path;
-		this.save_conf_prefix=save_conf_prefix;
+		this.save_conf_path = save_conf_path;
+		this.save_conf_prefix = save_conf_prefix;
 		initialize();
 	}
 
@@ -122,7 +129,6 @@ public class ImageVMergerUI {
 				try {
 					loadImages(panelImgs, imgs);
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 				scrollPane.repaint();
@@ -194,7 +200,6 @@ public class ImageVMergerUI {
 				try {
 					mergeImgsAndSave();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
@@ -210,17 +215,20 @@ public class ImageVMergerUI {
 		this.imgs = imgs;
 		this.n = imgs.length;
 		context.removeAll();
+		isLoaded = false;
 		imgpanes.clear();
 		masks1.clear();
 		masks2.clear();
 		texts1.clear();
 		texts2.clear();
+		btnMasks.clear();
 		int x, y; // flow cursor
 		x = 10;
 		y = 0;
 
-		int msk_h = 25, w, h = 0;
+		int w, h = 0;
 		for (int i = 0; i < n; i++) {
+			final int _i = i;
 			int w0 = imgs[i].getWidth(), h0 = imgs[i].getHeight();
 
 			w = (int) (w0 * ratio);
@@ -230,14 +238,35 @@ public class ImageVMergerUI {
 
 			JDraggablePane mask1 = new JDraggablePane(JDraggablePane.DRAG_VERTICAL, 0, 0, 255, 60);
 			JDraggablePane mask2 = new JDraggablePane(JDraggablePane.DRAG_VERTICAL, 0, 30, 233, 60);
-			JTextField text1 = new JTextField(String.valueOf(msk_h));
-			JTextField text2 = new JTextField(String.valueOf(msk_h));
+
+			mask1.setBounds(x, y, w, 0);
+			mask2.setBounds(x, y + h, w, 0);
+
+			JTextField text1 = new JTextField("0");
+			JTextField text2 = new JTextField("0");
 			text1.setBounds(x + w + 5, y, 70, 25);
 			text2.setBounds(x + w + 5, y + h - 25, 70, 25);
+			if (i < n - 1) {
+				JButton btnmask = new JButton();
+				btnmask.setBounds(x + w + 75, y + h - 25, 30, 50);
+				btnmask.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						JDraggablePane _mask2 = masks2.get(_i);
+						JDraggablePane _mask1n = masks1.get(_i + 1);
 
-			mask1.setBounds(x, y, w, msk_h);
-			mask2.setBounds(x, y + h - msk_h, w, msk_h);
-
+						if (_mask2.getHeight() + _mask1n.getHeight() > 0) {
+							JTransformUtils.dragTopBorderToFixedHeight(_mask2, 0);
+							JTransformUtils.dragBottomBorderToFixedHeight(_mask1n, 0);
+						} else {
+							JTransformUtils.dragTopBorderToFixedHeight(_mask2, def_msk_h);
+							JTransformUtils.dragBottomBorderToFixedHeight(_mask1n, def_msk_h);
+						}
+					}
+				});
+				btnMasks.add(btnmask);
+				context.add(btnmask, JLayeredPane.PALETTE_LAYER);
+			}
 			imgpanes.add(imgpane);
 			masks1.add(mask1);
 			masks2.add(mask2);
@@ -255,6 +284,7 @@ public class ImageVMergerUI {
 			context.add(mask2, JLayeredPane.PALETTE_LAYER);
 			context.add(text1, JLayeredPane.PALETTE_LAYER);
 			context.add(text2, JLayeredPane.PALETTE_LAYER);
+
 			y += h;
 		}
 		x += 10;
@@ -328,7 +358,7 @@ public class ImageVMergerUI {
 				}
 			});
 		}
-		y+=h;
+		y += h;
 		context.setPreferredSize(new Dimension(x, y));
 		context.revalidate();
 		isLoaded = true;
@@ -344,8 +374,7 @@ public class ImageVMergerUI {
 			y1_arr[i] = (int) (masks1.get(i).getHeight() / ratio);
 			y2_arr[i] = (int) (masks2.get(i).getHeight() / ratio);
 		}
-		 
-	
+
 		BufferedImage merged_img = ImageTransformUtils.mergeVertically(imgs, y1_arr, y2_arr);
 		String fn = "MG_" + save_conf_prefix + "_(" + n + ")_" + getNowTimeStr_yyyyMMddHHmmss() + ".jpg";
 		ImageIO.write(merged_img, "jpeg", new File(save_conf_path + "\\" + fn));

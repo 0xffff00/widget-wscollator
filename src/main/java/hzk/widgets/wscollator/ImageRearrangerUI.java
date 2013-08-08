@@ -58,7 +58,7 @@ public class ImageRearrangerUI {
 	int max_w = 460, max_h = 604; // each image's visual max width and height
 	String fn_prefix; // file name first 4 chars
 	private int batch_select_flag = 0;
-	boolean isLoaded;
+	private boolean isLoaded, isModified;
 	private static Color sn_color1 = new Color(180, 150, 200);
 
 	/**
@@ -78,7 +78,7 @@ public class ImageRearrangerUI {
 			}
 		});
 	}
-	
+
 	public void show() {
 		// frame.pack();
 		frame.setVisible(true);
@@ -134,6 +134,7 @@ public class ImageRearrangerUI {
 		});
 
 		btnMerge = new JButton("Merge...");
+		btnMerge.setEnabled(false);
 		btnMerge.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -206,6 +207,7 @@ public class ImageRearrangerUI {
 		if (!dir.exists()) {
 			return;
 		}
+
 		imgFiles = dir.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
@@ -279,6 +281,11 @@ public class ImageRearrangerUI {
 					idx[k] = idx[k + 1];
 					idx[k + 1] = t;
 					context.repaint();
+					isModified = true;
+					if (!btnSave.isEnabled())
+						btnSave.setEnabled(true);
+					if (btnMerge.isEnabled())
+						btnMerge.setEnabled(false);
 					log.debug(Arrays.toString(idx));
 				}
 			});
@@ -314,9 +321,6 @@ public class ImageRearrangerUI {
 		y += 70;
 		context.setPreferredSize(new Dimension(x, y));
 		context.revalidate();
-		isLoaded = true;
-		btnSave.setEnabled(true);
-
 	}
 
 	private void swapLocation(JComponent src, JComponent dest) {
@@ -334,13 +338,18 @@ public class ImageRearrangerUI {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
+			isLoaded = true;
+			isModified = false;
 			btnLoad.setEnabled(true);
+			btnSave.setEnabled(false);
+			btnMerge.setEnabled(true);
+			btnClear.setEnabled(true);
 		}
 
 	}
 
 	protected void save() {
-		if (!isLoaded)
+		if (!isLoaded || !isModified)
 			return;
 		btnSave.setEnabled(false);
 		int n_s = 0, n_f = 0;
@@ -351,7 +360,7 @@ public class ImageRearrangerUI {
 		for (int i = 0; i < n; i++) {
 			File f = imgFiles[idx[i]];
 			String oldname = f.getName();
-			String tmpname = oldname.substring(0, 4) + "_R" + to3digits(i + 1) + ".jpg.tmp" + fn_prefix;
+			String tmpname = textField.getText() + "_R" + to3digits(i + 1) + ".jpg.tmp" + fn_prefix;
 			File nf = MyIOUtils.renameFileSafely(f, tmpname, null);
 			if (nf == null) {
 				n_f++;
@@ -375,7 +384,7 @@ public class ImageRearrangerUI {
 				n_s++;
 			}
 		}
-
+		log.info("result for saving " + n + " file(s): " + n_s + " succeeded, " + n_f + " failed. ");
 		JOptionPane.showMessageDialog(frame, "result for saving " + n + " file(s): \n" + n_s + " succeeded, " + n_f + " failed. ");
 		btnSave.setEnabled(true);
 	}
@@ -412,6 +421,8 @@ public class ImageRearrangerUI {
 			}
 		});
 	}
+
+
 
 	protected boolean isLegalName(String arg) {
 		if (arg == null || arg.length() < 6)
