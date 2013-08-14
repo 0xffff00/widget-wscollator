@@ -80,7 +80,6 @@ public class ImageRearrangerUI {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		EventQueue.invokeLater(new Runnable() {
@@ -298,7 +297,7 @@ public class ImageRearrangerUI {
 		top_flag = 0;
 		updateUIForNumSelect();
 		updateUIForTopFlag();
-		int padding = 10, btnSwap_w = 120;
+		int padding = 10, btnSwap_w = 60,btnTop_w=120;
 		int x, y; // flow cursor
 		x = 10;
 		y = 5;
@@ -334,7 +333,7 @@ public class ImageRearrangerUI {
 			});
 
 			JButton btnTop = new JButton("<<");
-			btnTop.setBounds(x - btnSwap_w / 2 - 80, max_h + 15, 60, 40);
+			btnTop.setBounds(btnSwap.getX()-padding-btnTop_w, max_h + 15, btnTop_w, 40);
 			btnTop.setFont(new Font("Arial", Font.PLAIN, 12));
 			btnTop.setForeground(Color.GRAY);
 			btnTop.addMouseListener(new MouseAdapter() {

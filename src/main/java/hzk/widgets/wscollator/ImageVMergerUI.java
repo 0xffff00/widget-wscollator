@@ -260,21 +260,9 @@ public class ImageVMergerUI {
 					}
 				});
 			} else {
-				// the last btnmask is different
-				btnmask.setBounds(x + w + 75, y + h - 25, 30, 25);
-				btnmask.addMouseListener(new MouseAdapter() {
-					@Override
-					public void mouseClicked(MouseEvent e) {
-						JDraggablePane _mask2 = masks2.get(_i);
 
-						if (_mask2.getHeight() > 0) {
-							JTransformUtils.dragTopBorderToFixedHeight(_mask2, 0);
-						} else {
-							JTransformUtils.dragTopBorderToFixedHeight(_mask2, def_msk_h);
-						}
-					}
-				});
 			}
+
 			btnMasks.add(btnmask);
 			imgpanes.add(imgpane);
 			masks1.add(mask1);
@@ -297,6 +285,48 @@ public class ImageVMergerUI {
 
 			y += h;
 		}
+		// the last btnmask is different
+
+		w = (int) (imgs[n - 1].getWidth() * ratio);
+
+		JButton btnmaskLast = new JButton();
+		btnmaskLast.setBounds(x + w + 75, y - 25, 30, 25);
+		btnmaskLast.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				JDraggablePane _mask2 = masks2.get(n - 1);
+
+				if (_mask2.getHeight() > 0) {
+					JTransformUtils.dragTopBorderToFixedHeight(_mask2, 0);
+				} else {
+					JTransformUtils.dragTopBorderToFixedHeight(_mask2, def_msk_h);
+				}
+			}
+		});
+
+		// the first btnmask is different
+		w = (int) (imgs[0].getWidth() * ratio);
+		JButton btnmaskFirst = new JButton();
+		btnmaskFirst.setBounds(x + w + 75, 0, 30, 25);
+		btnmaskFirst.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				JDraggablePane _mask1 = masks1.get(0);
+
+				if (_mask1.getHeight() > 0) {
+					JTransformUtils.dragBottomBorderToFixedHeight(_mask1, 0);
+
+				} else {
+					JTransformUtils.dragBottomBorderToFixedHeight(_mask1, def_msk_h);
+				}
+			}
+		});
+
+		btnMasks.add(btnmaskLast);
+		btnMasks.add(btnmaskFirst);
+		context.add(btnmaskLast, JLayeredPane.PALETTE_LAYER);
+		context.add(btnmaskFirst, JLayeredPane.PALETTE_LAYER);
+
 		x += 10;
 		y = y - h + 10;
 
@@ -386,7 +416,7 @@ public class ImageVMergerUI {
 		}
 
 		BufferedImage merged_img = ImageTransformUtils.mergeVertically(imgs, y1_arr, y2_arr);
-		String fn = "MG_" + getNowTimeStr_yyyyMMddHHmmss() + save_conf_prefix + "_(" + n + ")_" + ".jpg";
+		String fn = "MG_" + getNowTimeStr_yyyyMMddHHmmss() +"_"+ save_conf_prefix + "_(" + n + ")_" + ".jpg";
 		ImageIO.write(merged_img, "jpeg", new File(save_conf_path + "\\" + fn));
 		JOptionPane.showMessageDialog(frame, "merged and saved successfully:\n" + fn);
 	}
