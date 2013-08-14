@@ -1,7 +1,6 @@
 package hzk.widgets.swing;
 
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
@@ -17,13 +16,13 @@ import javax.swing.JPanel;
  */
 public class JDraggablePane extends JPanel {
 
-	private static final long serialVersionUID = 2368132354291285212L;
+	private static final long serialVersionUID = 2368132020130808L;
 	private int dragMode;
 	// allow drag a border upside down to the other paralleled one
 	private boolean allowDragOver;
 	// zone types
 	private static final int ZONE_N = 2, ZONE_S = 3, ZONE_W = 5, ZONE_E = 7, ZONE_INLAND = 11, ZONE_OUTLAND = 37;
-	// 6 basic drag mode types (they are drag status type)
+	// 6 basic drag mode types (they are drag status type also)
 	private static final int DRAG_NONE = 0;
 	public static final int DRAG_N = 2, DRAG_S = 3, DRAG_W = 5, DRAG_E = 7, DRAG_ENTIRE = 11;
 	// composite drag mode types

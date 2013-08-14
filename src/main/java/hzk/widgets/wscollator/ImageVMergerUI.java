@@ -6,52 +6,47 @@ import hzk.widgets.swing.JTransformUtils;
 import hzk.widgets.util.ImageTransformUtils;
 import hzk.widgets.util.MyIOUtils;
 
-import java.awt.EventQueue;
-
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-
-import java.awt.Dimension;
 import java.awt.BorderLayout;
-
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.JButton;
-import javax.swing.SwingConstants;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.EventQueue;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.awt.Font;
-import java.awt.Color;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
-import javax.swing.border.EtchedBorder;
+import javax.imageio.ImageIO;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.border.EtchedBorder;
 
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class ImageVMergerUI {
 	static Log log = LogFactory.getLog(ImageVMergerUI.class);
@@ -236,8 +231,8 @@ public class ImageVMergerUI {
 			JImagePane imgpane = new JImagePane(imgs[i], JImagePane.SCALED, w, h);
 			imgpane.setLocation(x, y);
 
-			JDraggablePane mask1 = new JDraggablePane(JDraggablePane.DRAG_VERTICAL, 0, 0, 255, 60);
-			JDraggablePane mask2 = new JDraggablePane(JDraggablePane.DRAG_VERTICAL, 0, 30, 233, 60);
+			JDraggablePane mask1 = new JDraggablePane(JDraggablePane.DRAG_S, 0, 0, 255, 60);
+			JDraggablePane mask2 = new JDraggablePane(JDraggablePane.DRAG_N, 0, 30, 233, 60);
 
 			mask1.setBounds(x, y, w, 0);
 			mask2.setBounds(x, y + h, w, 0);
@@ -246,8 +241,8 @@ public class ImageVMergerUI {
 			JTextField text2 = new JTextField("0");
 			text1.setBounds(x + w + 5, y, 70, 25);
 			text2.setBounds(x + w + 5, y + h - 25, 70, 25);
+			JButton btnmask = new JButton();
 			if (i < n - 1) {
-				JButton btnmask = new JButton();
 				btnmask.setBounds(x + w + 75, y + h - 25, 30, 50);
 				btnmask.addMouseListener(new MouseAdapter() {
 					@Override
@@ -264,9 +259,23 @@ public class ImageVMergerUI {
 						}
 					}
 				});
-				btnMasks.add(btnmask);
-				context.add(btnmask, JLayeredPane.PALETTE_LAYER);
+			} else {
+				// the last btnmask is different
+				btnmask.setBounds(x + w + 75, y + h - 25, 30, 25);
+				btnmask.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						JDraggablePane _mask2 = masks2.get(_i);
+
+						if (_mask2.getHeight() > 0) {
+							JTransformUtils.dragTopBorderToFixedHeight(_mask2, 0);
+						} else {
+							JTransformUtils.dragTopBorderToFixedHeight(_mask2, def_msk_h);
+						}
+					}
+				});
 			}
+			btnMasks.add(btnmask);
 			imgpanes.add(imgpane);
 			masks1.add(mask1);
 			masks2.add(mask2);
@@ -278,6 +287,7 @@ public class ImageVMergerUI {
 			lblSN.setFont(new Font("Arial", Font.BOLD, 36));
 			lblSN.setForeground(new Color(180, 150, 200));
 
+			context.add(btnmask, JLayeredPane.PALETTE_LAYER);
 			context.add(imgpane, JLayeredPane.DEFAULT_LAYER);
 			context.add(lblSN, JLayeredPane.DEFAULT_LAYER);
 			context.add(mask1, JLayeredPane.PALETTE_LAYER);
@@ -376,7 +386,7 @@ public class ImageVMergerUI {
 		}
 
 		BufferedImage merged_img = ImageTransformUtils.mergeVertically(imgs, y1_arr, y2_arr);
-		String fn = "MG_" + save_conf_prefix + "_(" + n + ")_" + getNowTimeStr_yyyyMMddHHmmss() + ".jpg";
+		String fn = "MG_" + getNowTimeStr_yyyyMMddHHmmss() + save_conf_prefix + "_(" + n + ")_" + ".jpg";
 		ImageIO.write(merged_img, "jpeg", new File(save_conf_path + "\\" + fn));
 		JOptionPane.showMessageDialog(frame, "merged and saved successfully:\n" + fn);
 	}

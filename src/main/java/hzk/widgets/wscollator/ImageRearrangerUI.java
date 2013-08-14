@@ -3,27 +3,13 @@ package hzk.widgets.wscollator;
 import hzk.widgets.swing.JImagePane;
 import hzk.widgets.util.MyIOUtils;
 
-import java.awt.EventQueue;
-
-import javax.imageio.ImageIO;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import java.awt.Dimension;
 import java.awt.BorderLayout;
-import java.awt.Point;
-
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.FlowLayout;
-import javax.swing.JButton;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
+import java.awt.Font;
+import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -34,8 +20,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.awt.Font;
-import java.awt.Color;
+
+import javax.imageio.ImageIO;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class ImageRearrangerUI {
 	static Log log = LogFactory.getLog(ImageRearrangerUI.class);
@@ -46,8 +47,10 @@ public class ImageRearrangerUI {
 	JScrollPane scrollPane;
 	List<JImagePane> imgpanes = new ArrayList<JImagePane>();
 	List<JButton> btnsSwap = new ArrayList<JButton>();
+	List<JButton> btnsTop = new ArrayList<JButton>();
 	List<JLabel> lblsSN = new ArrayList<JLabel>();
 	private JButton btnSave, btnLoad, btnClear, btnMerge;
+	private JLabel lblFlag;
 	private JTextField textDir;
 	private JPanel panelMain;
 	File[] imgFiles;
@@ -59,13 +62,27 @@ public class ImageRearrangerUI {
 	String fn_prefix; // file name first 4 chars
 	private int batch_select_flag = 0;
 	private boolean isLoaded, isModified;
-	private static Color sn_color1 = new Color(180, 150, 200);
+	// the toTop stack flag
+	private int top_flag;
+	//fonts & colors
+	static Font SNfont0=new Font("Arial", Font.BOLD, 36);
+	static Font SNfont1=new Font("Arial", Font.BOLD, 36);
+	static Font SNfont2=new Font("Arial", Font.BOLD, 48);
+	static Color SNcolor0=new Color(180, 150, 200);
+	static Color SNcolor1=new Color(255, 20, 0);
+			
 
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
 		final String[] args1 = args;
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				String dir = (args1 != null && args1.length > 0) ? args1[0] : null;
@@ -154,15 +171,16 @@ public class ImageRearrangerUI {
 				batch_select_flag = 1 - batch_select_flag;
 				if (batch_select_flag == 0) {
 					for (int i = 0; i < n; i++) {
-						lblsSN.get(i).setForeground(sn_color1);
+						lblsSN.get(i).setForeground(SNcolor0);
 						selected[i] = false;
 					}
 				} else {
 					for (int i = 0; i < n; i++) {
-						lblsSN.get(i).setForeground(Color.red);
+						lblsSN.get(i).setForeground(SNcolor1);
 						selected[i] = true;
 					}
 				}
+				updateUIForNumSelect();
 			}
 		});
 		panel.add(btnBatchSelect);
@@ -175,7 +193,7 @@ public class ImageRearrangerUI {
 		textField = new JTextField();
 		panel.add(textField);
 		textField.setColumns(10);
-		textField.setText("09");
+		textField.setText("18");
 		btnLoad = new JButton("Load");
 		btnLoad.addMouseListener(new MouseAdapter() {
 			@Override
@@ -195,10 +213,32 @@ public class ImageRearrangerUI {
 				btnSave.setEnabled(false);
 				panelMain.removeAll();
 				scrollPane.repaint();
+				frame.setTitle(TITLE);
 			}
 		});
 		panel.add(btnClear);
 
+		lblFlag = new JLabel("0");
+		panel.add(lblFlag);
+
+	}
+
+	private void updateUIForNumSelect() {
+		int c = 0;
+		for (int i = 0; i < selected.length; i++)
+			if (selected[i])
+				c++;
+		btnMerge.setText("Merge(" + c + ")");
+
+	}
+
+	private void updateUIForTopFlag() {
+		if (top_flag > 0){
+			btnsTop.get(top_flag - 1).setVisible(false);
+			btnsSwap.get(top_flag-1).setVisible(false);
+			lblsSN.get(top_flag-1).setFont(SNfont2);
+		}
+		lblFlag.setText(String.valueOf(top_flag));
 	}
 
 	private void loadImages(final JComponent context, String dirPath, final String prefix) throws IOException {
@@ -208,11 +248,19 @@ public class ImageRearrangerUI {
 			return;
 		}
 
+		final String[] prefixes = prefix.split("[,;]");
+		for (String pref : prefixes)
+			pref = pref.trim();
+
 		imgFiles = dir.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
-				if (name.startsWith(prefix) && name.endsWith(".jpg"))
-					return true;
+				if (!name.endsWith(".jpg"))
+					return false;
+				for (String pref : prefixes) {
+					if (name.startsWith(pref))
+						return true;
+				}
 				return false;
 			}
 
@@ -245,13 +293,19 @@ public class ImageRearrangerUI {
 		context.removeAll();
 		imgpanes.clear();
 		btnsSwap.clear();
+		btnsTop.clear();
 		lblsSN.clear();
-		int padding = 10, btnSwap_w = 170;
+		top_flag = 0;
+		updateUIForNumSelect();
+		updateUIForTopFlag();
+		int padding = 10, btnSwap_w = 120;
 		int x, y; // flow cursor
 		x = 10;
 		y = 5;
 		boolean recalculated = false;
 		for (int i = 0; i < n; i++) {
+			final int k = i;
+
 			idx[i] = i;
 			selected[i] = false;
 			imgs[i] = ImageIO.read(imgFiles[i]);
@@ -268,51 +322,60 @@ public class ImageRearrangerUI {
 			imgpane.setImageTitle(imgFiles[i].getName());
 			imgpane.setLocation(x + max_w / 2 - w / 2, y);
 			x += max_w + padding;
-			JButton btnSwap = new JButton("<  -  >");
-			btnSwap.setBounds(x - btnSwap_w / 2 - padding / 2, max_h + 15, 170, 55);
-			btnSwap.setFont(new Font("Arial", Font.PLAIN, 36));
+			JButton btnSwap = new JButton("<    >");
+			btnSwap.setBounds(x - btnSwap_w / 2 - padding / 2, max_h + 15, btnSwap_w, 40);
+			btnSwap.setFont(new Font("Arial", Font.PLAIN, 12));
 			btnSwap.setForeground(Color.GRAY);
-			final int k = i;
 			btnSwap.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					swapLocation(imgpanes.get(idx[k]), imgpanes.get(idx[k + 1]));
-					int t = idx[k];
-					idx[k] = idx[k + 1];
-					idx[k + 1] = t;
-					context.repaint();
-					isModified = true;
-					if (!btnSave.isEnabled())
-						btnSave.setEnabled(true);
-					if (btnMerge.isEnabled())
-						btnMerge.setEnabled(false);
-					log.debug(Arrays.toString(idx));
+					swapImagesByDisplayedOrdinal(k, k + 1);
 				}
 			});
-			JLabel lblSN = new JLabel(to3digits(i + 1));
 
-			lblSN.setBounds(x - max_w / 2 - 30, max_h + 10, 70, 50);
-			lblSN.setFont(new Font("Arial", Font.BOLD, 36));
-			lblSN.setForeground(sn_color1);
-			lblSN.addMouseListener(new MouseAdapter() {
+			JButton btnTop = new JButton("<<");
+			btnTop.setBounds(x - btnSwap_w / 2 - 80, max_h + 15, 60, 40);
+			btnTop.setFont(new Font("Arial", Font.PLAIN, 12));
+			btnTop.setForeground(Color.GRAY);
+			btnTop.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					selected[k] = !selected[k];
-					if (selected[k]) {
-						lblsSN.get(k).setForeground(Color.red);
-					} else {
-						lblsSN.get(k).setForeground(sn_color1);
-
-					}
-
+					swapImagesByDisplayedOrdinal(k, top_flag);
+					if (top_flag < n - 1)
+						top_flag++;
+					updateUIForTopFlag();
+					
 				}
 			});
+
+			JLabel lblSN = new JLabel(to3digits(i + 1));
+
+			lblSN.setBounds(x - max_w / 2 - 30, max_h + 10, 100, 70);
+			lblSN.setFont(SNfont0);
+			lblSN.setForeground(SNcolor0);
+			lblSN.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					selected[k] = !selected[k];
+					if (selected[k]) {
+						lblsSN.get(k).setForeground(SNcolor1);
+					} else {
+						lblsSN.get(k).setForeground(SNcolor0);
+
+					}
+					updateUIForNumSelect();
+				}
+			});
+
+			btnsTop.add(i, btnTop);
 			btnsSwap.add(i, btnSwap);
 			imgpanes.add(i, imgpane);
 			lblsSN.add(lblSN);
+
 			context.add(lblSN);
 			context.add(imgpane);
 			context.add(btnSwap);
+			context.add(btnTop);
 		}
 		if (n > 0) {
 			btnsSwap.get(n - 1).setVisible(false);
@@ -323,7 +386,21 @@ public class ImageRearrangerUI {
 		context.revalidate();
 	}
 
-	private void swapLocation(JComponent src, JComponent dest) {
+	private void swapImagesByDisplayedOrdinal(int x1, int x2) {
+		swapComponentLocation(imgpanes.get(idx[x1]), imgpanes.get(idx[x2]));
+		int t = idx[x1];
+		idx[x1] = idx[x2];
+		idx[x2] = t;
+
+		isModified = true;
+		if (!btnSave.isEnabled())
+			btnSave.setEnabled(true);
+		if (btnMerge.isEnabled())
+			btnMerge.setEnabled(false);
+		log.debug(Arrays.toString(idx));
+	}
+
+	private void swapComponentLocation(JComponent src, JComponent dest) {
 		Point p = src.getLocation();
 		src.setLocation(dest.getLocation());
 		dest.setLocation(p);
@@ -421,8 +498,6 @@ public class ImageRearrangerUI {
 			}
 		});
 	}
-
-
 
 	protected boolean isLegalName(String arg) {
 		if (arg == null || arg.length() < 6)

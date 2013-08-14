@@ -14,8 +14,8 @@ import java.util.Collection;
 import javax.imageio.ImageIO;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -80,7 +80,7 @@ public class MyLogicApp {
 			try {
 				BufferedImage img0 = ImageIO.read(f);
 				if (w0==img0.getWidth() && h0==img0.getHeight()){
-					BufferedImage img = ImageTransformUtils.clip(img0, left, top, w, h);
+					BufferedImage img = img0.getSubimage( left, top, w, h);
 					ImageIO.write(img, "jpeg", new File(path + "//clipped//" + f.getName()));
 					log.info(n+++":\t"+f.getName());
 				}
@@ -98,7 +98,7 @@ public class MyLogicApp {
 		try {
 			BufferedImage img = ImageIO.read(f);
 
-			BufferedImage part = ImageTransformUtils.clip(img, 420, 3, 54, 25);
+			BufferedImage part = ImageTransformUtils.crop(img, 420, 3, 54, 25);
 			ImageIO.write(part, "jpeg", new File(path + "\\" + "time_zone.jpg"));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
