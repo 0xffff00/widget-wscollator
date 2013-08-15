@@ -8,7 +8,7 @@
 	<packaging>jar</packaging>
 
 	<name>wechat-screenshoots-collator</name>
-	<url>https://bitbucket.org/hzk8000/hzk.widgets.wscollator</url>
+	<url>https://bitbucket.org/hzk8000/wscollator</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
